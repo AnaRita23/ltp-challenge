@@ -15,12 +15,12 @@
 - [ ] Use the provided **Figma** file as the foundation and reproduce it as faithfully as possible.
 
 ### Homepage
-- [ ] Display a list of products
-- [ ] Fetch products (you may use the **Dummy JSON API** provided)
-- [ ] Each product links to its detail page
-- [ ] Allow sorting (e.g., title/price, asc/desc)
+- [x] Display a list of products
+- [x] Fetch products (you may use the **Dummy JSON API** provided)
+- [x] Each product links to its detail page
+- [x] Allow sorting (e.g., title/price, asc/desc)
 - [ ] Allow filtering by category
-- [ ] Include pagination
+- [x] Include pagination
 
 ### Product Detail Page
 - [ ] Fetch the selected product (Dummy JSON API allowed)
@@ -38,10 +38,10 @@
 - [ ] Ensure the app works well on **mobile and desktop**
 
 ### Development Resources
-- [ ] Figma
-- [ ] Dummy JSON API
+- [x] Figma
+- [x] Dummy JSON API
 
 ### Key Notes
-- [ ] Appropriately utilize Remix **loader** and **action** functions
-- [ ] Follow the **Remix routing** structure
-- [ ] Submit the project on a **version control** platform
+- [x] Appropriately utilize Remix **loader** and **action** functions
+- [x] Follow the **Remix routing** structure
+- [x] Submit the project on a **version control** platform
