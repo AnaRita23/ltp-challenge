@@ -1,62 +1,191 @@
-import { Link, useLoaderData, useSearchParams, Form, useSubmit } from "@remix-run/react";
+import { Link, useLoaderData, useSearchParams, Form, useSubmit, useLocation } from "@remix-run/react";
 import { json } from "@remix-run/node";
 
 const PAGE_SIZE = 9;
+
+async function fetchJSON(url, { timeoutMs = 15000 } = {}) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      // Falhou (timeout/rede/5xx) - devolve null para fallback
+      return null;
+    } finally {
+      clearTimeout(id);
+    }
+  }
 
 export async function loader({ request }) {
     const url = new URL(request.url);
     const page = Number(url.searchParams.get("page") || 1);
     const skip = (page - 1) * PAGE_SIZE;
+  
 
     const sortRaw = url.searchParams.get("sort") || "";
     const allowed = new Set(["title-asc", "title-desc", "price-asc", "price-desc"]);
     const sort = allowed.has(sortRaw) ? sortRaw : "";
+  
 
-    const apiUrl = new URL("https://dummyjson.com/products");
-    
-    if (sort.startsWith("title")) {
-        apiUrl.searchParams.set("limit", "0"); 
+    const selectedCategories = url.searchParams.getAll("category"); 
+    const hasNone = selectedCategories.length === 0;
+    const hasOne = selectedCategories.length === 1;
+    const hasMulti = selectedCategories.length > 1;
+  
+
+    const category = hasOne ? selectedCategories[0] : "";
+  
+    async function getProductsDataBase(baseUrl) {
+      const base = new URL(baseUrl);
+      if (sort.startsWith("title")) {
+        base.searchParams.set("limit", "0"); 
       } else {
-        apiUrl.searchParams.set("limit", String(PAGE_SIZE));
-        apiUrl.searchParams.set("skip", String(skip));
+        base.searchParams.set("limit", String(PAGE_SIZE));
+        base.searchParams.set("skip", String(skip));
         if (sort) {
           const [sortBy, order] = sort.split("-");
-          apiUrl.searchParams.set("sortBy", sortBy);
-          apiUrl.searchParams.set("order", order);
+          base.searchParams.set("sortBy", sortBy);
+          base.searchParams.set("order", order);
         }
-    }
-
-    const res = await fetch(apiUrl.href);
-    if (!res.ok) throw new Response("Erro ao carregar produtos", { status: 500 });
-
-    const data = await res.json();
-    let products, total, totalPages;
-
-    if (sort.startsWith("title")) {
-        
-        const all = data.products ?? [];
-        const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
-        all.sort((a, b) => collator.compare(a.title, b.title));
-        if (sort.endsWith("desc")) all.reverse();
-    
-        total = data.total ?? all.length;
-        totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-        products = all.slice(skip, skip + PAGE_SIZE); 
-      } else {
-        products = data.products ?? [];
-        total = data.total ?? products.length;
-        totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
       }
+  
+      async function getProductsData() {
+        
+        let data = await fetchJSON(base.href, { timeoutMs: 15000 });
+        if (data) return { data, full: sort.startsWith("title") };
+  
+        
+        if (sort.startsWith("title")) {
+          const fb = new URL(baseUrl);
+          fb.searchParams.set("limit", String(PAGE_SIZE));
+          fb.searchParams.set("skip", String(skip));
+          const [, order] = sort.split("-");
+          fb.searchParams.set("sortBy", "title");
+          fb.searchParams.set("order", order);
+          data = await fetchJSON(fb.href, { timeoutMs: 12000 });
+          if (data) return { data, full: false };
+        }
+  
+        
+        const fb2 = new URL(baseUrl);
+        fb2.searchParams.set("limit", String(PAGE_SIZE));
+        fb2.searchParams.set("skip", String(skip));
+        data = await fetchJSON(fb2.href, { timeoutMs: 12000 });
+        if (data) return { data, full: false };
+  
+        return null;
+      }
+  
+      return getProductsData();
+    }
+  
 
-    return json({ products, total, page, totalPages, sort});
+    async function getCategories() {
+      const c1 = await fetchJSON("https://dummyjson.com/products/category-list", { timeoutMs: 15000 });
+      if (Array.isArray(c1)) return c1;
+      const c2 = await fetchJSON("https://dummyjson.com/products/categories", { timeoutMs: 15000 });
+      if (Array.isArray(c2)) return c2;
+      return [];
+    }
+  
+    const categories = await getCategories();
+  
+    
+    let data, full; 
+    if (hasMulti) {
+      const all = await fetchJSON("https://dummyjson.com/products?limit=0", { timeoutMs: 15000 });
+      if (!all) {
+        return json({
+          products: [],
+          total: 0,
+          page,
+          totalPages: 1,
+          sort,
+          category,
+          selectedCategories,
+          categories,
+          error: "Products temporarily unavailable. Please try again.",
+        });
+      }
+      data = all;
+      full = true; 
+    } else {
+      const baseUrl = hasOne
+        ? `https://dummyjson.com/products/category/${encodeURIComponent(category)}`
+        : `https://dummyjson.com/products`;
+      const result = await getProductsDataBase(baseUrl);
+      if (!result) {
+        return json({
+          products: [],
+          total: 0,
+          page,
+          totalPages: 1,
+          sort,
+          category,
+          selectedCategories,
+          categories,
+          error: "Products temporarily unavailable. Please try again.",
+        });
+      }
+      data = result.data;
+      full = result.full;
+    }
+  
+    let list = data.products ?? [];
+  
+    if (hasMulti) {
+      const set = new Set(selectedCategories);
+      list = list.filter((p) => set.has(p.category));
+    }
+  
+    if (sort.startsWith("title")) {
+      const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+      list.sort((a, b) => collator.compare(a.title, b.title));
+      if (sort.endsWith("desc")) list.reverse();
+      full = true; 
+    } else if (sort.startsWith("price") && hasMulti) {
+      const asc = sort.endsWith("asc");
+      list.sort((a, b) => (asc ? a.price - b.price : b.price - a.price));
+      full = true; 
+    }
+  
+   
+    let products, total, totalPages;
+    if (full) {
+      total = list.length;
+      totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      const start = (page - 1) * PAGE_SIZE;
+      products = list.slice(start, start + PAGE_SIZE);
+    } else {
+      products = list; 
+      total = data.total ?? products.length;
+      totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    }
+  
+    return json({
+      products,
+      total,
+      page,
+      totalPages,
+      sort,
+      category,             
+      selectedCategories,  
+      categories,           
+    });
 }
+  
 
 
 export default function Index() {
-    const { products, total, page, totalPages, sort } = useLoaderData();
+    const { products, total, page, totalPages, sort, category, selectedCategories = [], categories } = useLoaderData();
     const [searchParams] = useSearchParams();
     const submit = useSubmit();
     const sortQS = sort ? `&sort=${encodeURIComponent(sort)}` : "";
+    const catQS = selectedCategories.length
+    ? selectedCategories.map(c => `&category=${encodeURIComponent(c)}`).join("")
+    : "";
     const start = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
     const end   = Math.min(page * PAGE_SIZE, total);
 
@@ -68,6 +197,7 @@ export default function Index() {
         startPage = Math.max(1, endPage - WINDOW + 1);
     }
 
+    const location = useLocation();
 
     return (<div>
             <header className="header">
@@ -102,7 +232,7 @@ export default function Index() {
                 <div className="mainContent">
                     <div className="filters">
                         <div className="filterCategories">
-                            <Form method="get" className="sortForm" onChange={(e) => submit(e.currentTarget, { replace: true })}>
+                            <Form key={`sort-${location.search}`} method="get" className="sortForm" onChange={(e) => submit(e.currentTarget, { replace: true })}>
                                 <select id="sort" name="sort" defaultValue={sort || ""}>
                                     <option value="">Sort by </option>  
                                     <option value="title-asc">Title (A–Z)</option>
@@ -111,6 +241,9 @@ export default function Index() {
                                     <option value="price-desc">Price (High → Low)</option>
                                 </select>
 
+                                {selectedCategories.map(c => (
+                                    <input key={c} type="hidden" name="category" value={c} />
+                                ))}
                                 <input type="hidden" name="page" value="1" />
                                 
                             </Form>
@@ -144,7 +277,7 @@ export default function Index() {
                   
                     {page > 1 && (
                     <Link
-                        to={`/?page=${page - 1}${sortQS}`}
+                        to={`/?page=${page - 1}${sortQS}${catQS}`}
                         className="page nav"
                         aria-label="Previous page"
                     >
@@ -159,7 +292,7 @@ export default function Index() {
                     return (
                         <Link
                         key={n}
-                        to={`/?page=${n}${sortQS}`}
+                        to={`/?page=${n}${sortQS}${catQS}`}
                         className={n === page ? "page active" : "page"}
                         aria-current={n === page ? "page" : undefined}
                         >
@@ -172,7 +305,7 @@ export default function Index() {
                    
                     {page < totalPages && (
                     <Link
-                        to={`/?page=${page + 1}${sortQS}`}
+                        to={`/?page=${page + 1}${sortQS}${catQS}`}
                         className="page nav"
                         aria-label="Next page"
                     >
@@ -183,7 +316,35 @@ export default function Index() {
                         </div>
                 </div>
                 <div className="Sidebar">
-                    
+                    <div className="categoriesContainer">
+                        <h3>Categories</h3>
+                        <Form
+                            key={`cats-${location.search}`} 
+                            method="get"
+                            onChange={(e) => submit(e.currentTarget, { replace: true })}
+                            className="categoryForm"
+                            >
+                            
+                            <input type="hidden" name="sort" value={sort || ""} />
+                            <input type="hidden" name="page" value="1" />
+
+                            <ul style={{ listStyle: "none", padding: 0, margin: "8px 0" }}>
+                            {categories.map((c) => (
+                                <li key={c} style={{ margin: "6px 0" }}>
+                                    <label>
+                                    <input
+                                        type="checkbox"
+                                        name="category"
+                                        value={c}
+                                        defaultChecked={selectedCategories.includes(c)}
+                                    />{" "}
+                                    {c}
+                                    </label>
+                                </li>
+                                ))}
+                            </ul>
+                        </Form>
+                    </div>
                 </div>
             </div>
         </div>

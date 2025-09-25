@@ -112,7 +112,7 @@ h1{
 
 .mainContent {
     padding-bottom: 40px; 
-    margin-right: 300px;
+    margin-right: 350px;
 }
 
 .productGrid {
@@ -217,4 +217,89 @@ h1{
     border-color: #1F3044;
 }
   
+  
+
+.container {
+    position: relative;
+}
+  
+ 
+.Sidebar {
+    position: absolute;
+    right: 42px;     
+    top: 0;
+    width: 260px;    
+}
+  
+
+.categoriesContainer {
+    position: sticky;                   
+    background: #fff;
+    padding: 16px;
+}
+  
+.categoriesContainer h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    color: #1F3044;
+    margin: 0 0 10px;
+}
+  
+
+.categoryForm ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+}
+  
+.categoryForm li + li {
+    margin-top: 6px;
+
+}
+  
+.categoryForm label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-family: 'Inter', sans-serif;
+    color: #1F3044;
+}
+  
+.categoryForm label:hover {
+    background: #F9FAFB;
+}
+  
+
+.categoryForm input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #1F3044;   
+}
+  
+.categoryForm input[type="checkbox"]:focus-visible {
+    outline: 2px solid #1F3044;
+    outline-offset: 2px;
+}
+  
+.categoriesContainer {
+    max-height: calc(100vh - 120px);
+    overflow: auto;
+    scrollbar-width: thin;
+}
+  
+@media (max-width: 1024px) {
+    .Sidebar {
+      position: static;  
+      width: auto;
+      margin: 16px 42px;
+    }
+    .categoriesContainer {
+      position: static;  
+      max-height: none;
+    }
+}
   

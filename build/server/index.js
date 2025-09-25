@@ -1,7 +1,7 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable, json } from "@remix-run/node";
-import { RemixServer, Meta, Links, Outlet, Scripts, Link, useLoaderData, useSearchParams, useSubmit, Form } from "@remix-run/react";
+import { RemixServer, Meta, Links, Outlet, Scripts, Link, useLoaderData, useSearchParams, useSubmit, useLocation, Form } from "@remix-run/react";
 import * as isbotModule from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 const ABORT_DELAY = 5e3;
@@ -223,6 +223,19 @@ const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: Shop$3
 }, Symbol.toStringTag, { value: "Module" }));
 const PAGE_SIZE = 9;
+async function fetchJSON(url, { timeoutMs = 15e3 } = {}) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(id);
+  }
+}
 async function loader({ request }) {
   const url = new URL(request.url);
   const page = Number(url.searchParams.get("page") || 1);
@@ -230,42 +243,137 @@ async function loader({ request }) {
   const sortRaw = url.searchParams.get("sort") || "";
   const allowed = /* @__PURE__ */ new Set(["title-asc", "title-desc", "price-asc", "price-desc"]);
   const sort = allowed.has(sortRaw) ? sortRaw : "";
-  const apiUrl = new URL("https://dummyjson.com/products");
-  if (sort.startsWith("title")) {
-    apiUrl.searchParams.set("limit", "0");
-  } else {
-    apiUrl.searchParams.set("limit", String(PAGE_SIZE));
-    apiUrl.searchParams.set("skip", String(skip));
-    if (sort) {
-      const [sortBy, order] = sort.split("-");
-      apiUrl.searchParams.set("sortBy", sortBy);
-      apiUrl.searchParams.set("order", order);
+  const selectedCategories = url.searchParams.getAll("category");
+  selectedCategories.length === 0;
+  const hasOne = selectedCategories.length === 1;
+  const hasMulti = selectedCategories.length > 1;
+  const category = hasOne ? selectedCategories[0] : "";
+  async function getProductsDataBase(baseUrl) {
+    const base = new URL(baseUrl);
+    if (sort.startsWith("title")) {
+      base.searchParams.set("limit", "0");
+    } else {
+      base.searchParams.set("limit", String(PAGE_SIZE));
+      base.searchParams.set("skip", String(skip));
+      if (sort) {
+        const [sortBy, order] = sort.split("-");
+        base.searchParams.set("sortBy", sortBy);
+        base.searchParams.set("order", order);
+      }
     }
+    async function getProductsData() {
+      let data2 = await fetchJSON(base.href, { timeoutMs: 15e3 });
+      if (data2) return { data: data2, full: sort.startsWith("title") };
+      if (sort.startsWith("title")) {
+        const fb = new URL(baseUrl);
+        fb.searchParams.set("limit", String(PAGE_SIZE));
+        fb.searchParams.set("skip", String(skip));
+        const [, order] = sort.split("-");
+        fb.searchParams.set("sortBy", "title");
+        fb.searchParams.set("order", order);
+        data2 = await fetchJSON(fb.href, { timeoutMs: 12e3 });
+        if (data2) return { data: data2, full: false };
+      }
+      const fb2 = new URL(baseUrl);
+      fb2.searchParams.set("limit", String(PAGE_SIZE));
+      fb2.searchParams.set("skip", String(skip));
+      data2 = await fetchJSON(fb2.href, { timeoutMs: 12e3 });
+      if (data2) return { data: data2, full: false };
+      return null;
+    }
+    return getProductsData();
   }
-  const res = await fetch(apiUrl.href);
-  if (!res.ok) throw new Response("Erro ao carregar produtos", { status: 500 });
-  const data = await res.json();
-  let products, total, totalPages;
-  if (sort.startsWith("title")) {
-    const all = data.products ?? [];
-    const collator = new Intl.Collator(void 0, { sensitivity: "base", numeric: true });
-    all.sort((a, b) => collator.compare(a.title, b.title));
-    if (sort.endsWith("desc")) all.reverse();
-    total = data.total ?? all.length;
-    totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    products = all.slice(skip, skip + PAGE_SIZE);
+  async function getCategories() {
+    const c1 = await fetchJSON("https://dummyjson.com/products/category-list", { timeoutMs: 15e3 });
+    if (Array.isArray(c1)) return c1;
+    const c2 = await fetchJSON("https://dummyjson.com/products/categories", { timeoutMs: 15e3 });
+    if (Array.isArray(c2)) return c2;
+    return [];
+  }
+  const categories = await getCategories();
+  let data, full;
+  if (hasMulti) {
+    const all = await fetchJSON("https://dummyjson.com/products?limit=0", { timeoutMs: 15e3 });
+    if (!all) {
+      return json({
+        products: [],
+        total: 0,
+        page,
+        totalPages: 1,
+        sort,
+        category,
+        selectedCategories,
+        categories,
+        error: "Products temporarily unavailable. Please try again."
+      });
+    }
+    data = all;
+    full = true;
   } else {
-    products = data.products ?? [];
+    const baseUrl = hasOne ? `https://dummyjson.com/products/category/${encodeURIComponent(category)}` : `https://dummyjson.com/products`;
+    const result = await getProductsDataBase(baseUrl);
+    if (!result) {
+      return json({
+        products: [],
+        total: 0,
+        page,
+        totalPages: 1,
+        sort,
+        category,
+        selectedCategories,
+        categories,
+        error: "Products temporarily unavailable. Please try again."
+      });
+    }
+    data = result.data;
+    full = result.full;
+  }
+  let list = data.products ?? [];
+  if (hasMulti) {
+    const set = new Set(selectedCategories);
+    list = list.filter((p) => set.has(p.category));
+  }
+  if (sort.startsWith("title")) {
+    const collator = new Intl.Collator(void 0, { sensitivity: "base", numeric: true });
+    list.sort((a, b) => collator.compare(a.title, b.title));
+    if (sort.endsWith("desc")) list.reverse();
+    full = true;
+  } else if (sort.startsWith("price") && hasMulti) {
+    const asc = sort.endsWith("asc");
+    list.sort((a, b) => asc ? a.price - b.price : b.price - a.price);
+    full = true;
+  }
+  let products, total, totalPages;
+  if (full) {
+    total = list.length;
+    totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const start = (page - 1) * PAGE_SIZE;
+    products = list.slice(start, start + PAGE_SIZE);
+  } else {
+    products = list;
     total = data.total ?? products.length;
     totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   }
-  return json({ products, total, page, totalPages, sort });
+  return json({
+    products,
+    total,
+    page,
+    totalPages,
+    sort,
+    category,
+    // mantém por compatibilidade
+    selectedCategories,
+    // novo: array
+    categories
+    // lista p/ sidebar
+  });
 }
 function Index() {
-  const { products, total, page, totalPages, sort } = useLoaderData();
+  const { products, total, page, totalPages, sort, category, selectedCategories = [], categories } = useLoaderData();
   const [searchParams] = useSearchParams();
   const submit = useSubmit();
   const sortQS = sort ? `&sort=${encodeURIComponent(sort)}` : "";
+  const catQS = selectedCategories.length ? selectedCategories.map((c) => `&category=${encodeURIComponent(c)}`).join("") : "";
   const start = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, total);
   const WINDOW = 5;
@@ -275,6 +383,7 @@ function Index() {
     endPage = totalPages;
     startPage = Math.max(1, endPage - WINDOW + 1);
   }
+  const location = useLocation();
   return /* @__PURE__ */ jsxs("div", { children: [
     /* @__PURE__ */ jsxs("header", { className: "header", children: [
       /* @__PURE__ */ jsx("strong", { className: "logo", children: "THE ONLINE STORE" }),
@@ -335,8 +444,9 @@ function Index() {
               /* @__PURE__ */ jsx("option", { value: "price-asc", children: "Price (Low → High)" }),
               /* @__PURE__ */ jsx("option", { value: "price-desc", children: "Price (High → Low)" })
             ] }),
+            selectedCategories.map((c) => /* @__PURE__ */ jsx("input", { type: "hidden", name: "category", value: c }, c)),
             /* @__PURE__ */ jsx("input", { type: "hidden", name: "page", value: "1" })
-          ] }) }),
+          ] }, `sort-${location.search}`) }),
           /* @__PURE__ */ jsx("div", { className: "showing", children: /* @__PURE__ */ jsxs("small", { children: [
             "Showing ",
             start,
@@ -374,7 +484,7 @@ function Index() {
           page > 1 && /* @__PURE__ */ jsx(
             Link,
             {
-              to: `/?page=${page - 1}${sortQS}`,
+              to: `/?page=${page - 1}${sortQS}${catQS}`,
               className: "page nav",
               "aria-label": "Previous page",
               children: "‹"
@@ -385,7 +495,7 @@ function Index() {
             return /* @__PURE__ */ jsx(
               Link,
               {
-                to: `/?page=${n}${sortQS}`,
+                to: `/?page=${n}${sortQS}${catQS}`,
                 className: n === page ? "page active" : "page",
                 "aria-current": n === page ? "page" : void 0,
                 children: n
@@ -396,7 +506,7 @@ function Index() {
           page < totalPages && /* @__PURE__ */ jsx(
             Link,
             {
-              to: `/?page=${page + 1}${sortQS}`,
+              to: `/?page=${page + 1}${sortQS}${catQS}`,
               className: "page nav",
               "aria-label": "Next page",
               children: "›"
@@ -404,7 +514,35 @@ function Index() {
           )
         ] })
       ] }),
-      /* @__PURE__ */ jsx("div", { className: "Sidebar" })
+      /* @__PURE__ */ jsx("div", { className: "Sidebar", children: /* @__PURE__ */ jsxs("div", { className: "categoriesContainer", children: [
+        /* @__PURE__ */ jsx("h3", { children: "Categories" }),
+        /* @__PURE__ */ jsxs(
+          Form,
+          {
+            method: "get",
+            onChange: (e) => submit(e.currentTarget, { replace: true }),
+            className: "categoryForm",
+            children: [
+              /* @__PURE__ */ jsx("input", { type: "hidden", name: "sort", value: sort || "" }),
+              /* @__PURE__ */ jsx("input", { type: "hidden", name: "page", value: "1" }),
+              /* @__PURE__ */ jsx("ul", { style: { listStyle: "none", padding: 0, margin: "8px 0" }, children: categories.map((c) => /* @__PURE__ */ jsx("li", { style: { margin: "6px 0" }, children: /* @__PURE__ */ jsxs("label", { children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "checkbox",
+                    name: "category",
+                    value: c,
+                    defaultChecked: selectedCategories.includes(c)
+                  }
+                ),
+                " ",
+                c
+              ] }) }, c)) })
+            ]
+          },
+          `cats-${location.search}`
+        )
+      ] }) })
     ] })
   ] });
 }
@@ -584,7 +722,7 @@ const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   default: Shop
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-C0H3yrQ3.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-BPUaVNZ0.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] }, "routes/contact": { "id": "routes/contact", "parentId": "root", "path": "contact", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/contact-8PwFSVUh.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-ClmP0etf.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] }, "routes/about": { "id": "routes/about", "parentId": "root", "path": "about", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/about-QBe-lxnv.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] }, "routes/blog": { "id": "routes/blog", "parentId": "root", "path": "blog", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/blog-BUivwrVp.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] }, "routes/shop": { "id": "routes/shop", "parentId": "root", "path": "shop", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/shop-CR5hE90v.js", "imports": ["/assets/components-WLkNS9Eh.js"], "css": [] } }, "url": "/assets/manifest-2354dd74.js", "version": "2354dd74" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-BnDlbNUM.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-CBxXo-XU.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/contact": { "id": "routes/contact", "parentId": "root", "path": "contact", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/contact-l9_5Xgiv.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-x8tNpAGi.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/about": { "id": "routes/about", "parentId": "root", "path": "about", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/about-Bt8JlAWu.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/blog": { "id": "routes/blog", "parentId": "root", "path": "blog", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/blog-D13of1q0.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/shop": { "id": "routes/shop", "parentId": "root", "path": "shop", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/shop-Dpqkq6cH.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] } }, "url": "/assets/manifest-77f91673.js", "version": "77f91673" };
 const mode = "production";
 const assetsBuildDirectory = "build\\client";
 const basename = "/";
