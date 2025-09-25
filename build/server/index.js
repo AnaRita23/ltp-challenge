@@ -115,7 +115,7 @@ const entryServer = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineP
   __proto__: null,
   default: handleRequest
 }, Symbol.toStringTag, { value: "Module" }));
-const stylesHref = "/assets/styles-CpVwV59K.css";
+const stylesHref = "/assets/styles-3EKpcTls.css";
 const links = () => [
   { rel: "stylesheet", href: stylesHref }
 ];
@@ -361,11 +361,8 @@ async function loader({ request }) {
     totalPages,
     sort,
     category,
-    // mantém por compatibilidade
     selectedCategories,
-    // novo: array
     categories
-    // lista p/ sidebar
   });
 }
 function Index() {
@@ -722,7 +719,7 @@ const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   default: Shop
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-BnDlbNUM.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-CBxXo-XU.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/contact": { "id": "routes/contact", "parentId": "root", "path": "contact", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/contact-l9_5Xgiv.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-x8tNpAGi.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/about": { "id": "routes/about", "parentId": "root", "path": "about", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/about-Bt8JlAWu.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/blog": { "id": "routes/blog", "parentId": "root", "path": "blog", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/blog-D13of1q0.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/shop": { "id": "routes/shop", "parentId": "root", "path": "shop", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/shop-Dpqkq6cH.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] } }, "url": "/assets/manifest-77f91673.js", "version": "77f91673" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-BnDlbNUM.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-5AOT9awx.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/contact": { "id": "routes/contact", "parentId": "root", "path": "contact", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/contact-l9_5Xgiv.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-x8tNpAGi.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/about": { "id": "routes/about", "parentId": "root", "path": "about", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/about-Bt8JlAWu.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/blog": { "id": "routes/blog", "parentId": "root", "path": "blog", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/blog-D13of1q0.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/shop": { "id": "routes/shop", "parentId": "root", "path": "shop", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/shop-Dpqkq6cH.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] } }, "url": "/assets/manifest-d08150f2.js", "version": "d08150f2" };
 const mode = "production";
 const assetsBuildDirectory = "build\\client";
 const basename = "/";
