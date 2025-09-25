@@ -8,6 +8,12 @@
     border-bottom: 1px solid #000;
 }
   
+h1{
+    font-size: 5rem;
+    color: #1F3044;
+    align-self: center;
+}
+
 .logo {
     justify-self: start;
     color: #1F3044;
@@ -19,6 +25,8 @@
     white-space: nowrap;
     margin-left: 26px;
 }
+
+
   
 .pageLinks {
     display: flex;
@@ -150,13 +158,20 @@
     width: auto; 
 }
 
-.filters{
-    font-family: 'Inter', sans-serif;
+
+.filters {
+    display: flex;
+    align-items: center;          
+    justify-content: space-between;
+                   
     margin-top: 25px;
 }
+  
 
 .showing{
     justify-self: end;
+    font-family: 'Inter', sans-serif;
+    color: #1F3044;
 }
 
 .sortForm select {
@@ -174,10 +189,32 @@
     border: 1px solid #E5E7EB;
     background: #fff;
     border-radius: 8px;
-    padding: 8px 12px;
+    
     font-family: 'Inter', sans-serif;
     cursor: pointer;
 }
   
+.sortForm select {
+    appearance: auto;              
+    -webkit-appearance: menulist;   
+    -moz-appearance: menulist;
+  
+    border: 1px solid #1F3044;
+    border-radius: 8px;
+                 
+    background: #fff;               
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.2;
+    min-width: 150px;  
+    color: #1F3044;  
+    margin-left: 42px ; 
 
+}        
+  
+.sortForm select:focus {
+    outline: none;
+    border-color: #1F3044;
+}
+  
   

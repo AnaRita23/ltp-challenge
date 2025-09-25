@@ -8,31 +8,67 @@ export async function loader({ request }) {
     const page = Number(url.searchParams.get("page") || 1);
     const skip = (page - 1) * PAGE_SIZE;
 
-    const sortBy = url.searchParams.get("sortBy") || "title"; 
-    const order  = url.searchParams.get("order")  || "asc";
+    const sortRaw = url.searchParams.get("sort") || "";
+    const allowed = new Set(["title-asc", "title-desc", "price-asc", "price-desc"]);
+    const sort = allowed.has(sortRaw) ? sortRaw : "";
 
     const apiUrl = new URL("https://dummyjson.com/products");
-    apiUrl.searchParams.set("limit", String(PAGE_SIZE));
-    apiUrl.searchParams.set("skip", String(skip));
-    apiUrl.searchParams.set("sortBy", sortBy);
-    apiUrl.searchParams.set("order", order);
+    
+    if (sort.startsWith("title")) {
+        apiUrl.searchParams.set("limit", "0"); 
+      } else {
+        apiUrl.searchParams.set("limit", String(PAGE_SIZE));
+        apiUrl.searchParams.set("skip", String(skip));
+        if (sort) {
+          const [sortBy, order] = sort.split("-");
+          apiUrl.searchParams.set("sortBy", sortBy);
+          apiUrl.searchParams.set("order", order);
+        }
+    }
 
     const res = await fetch(apiUrl.href);
     if (!res.ok) throw new Response("Erro ao carregar produtos", { status: 500 });
 
     const data = await res.json();
-    const products = data.products ?? [];
-    const total = data.total ?? products.length;
-    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    let products, total, totalPages;
 
-    return json({ products, total, page, totalPages, sortBy, order });
+    if (sort.startsWith("title")) {
+        
+        const all = data.products ?? [];
+        const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+        all.sort((a, b) => collator.compare(a.title, b.title));
+        if (sort.endsWith("desc")) all.reverse();
+    
+        total = data.total ?? all.length;
+        totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        products = all.slice(skip, skip + PAGE_SIZE); 
+      } else {
+        products = data.products ?? [];
+        total = data.total ?? products.length;
+        totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      }
+
+    return json({ products, total, page, totalPages, sort});
 }
 
 
 export default function Index() {
-    const { products, total, page, totalPages, sortBy, order } = useLoaderData();
+    const { products, total, page, totalPages, sort } = useLoaderData();
     const [searchParams] = useSearchParams();
     const submit = useSubmit();
+    const sortQS = sort ? `&sort=${encodeURIComponent(sort)}` : "";
+    const start = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+    const end   = Math.min(page * PAGE_SIZE, total);
+
+    const WINDOW = 5;
+    let startPage = Math.max(1, page - Math.floor(WINDOW / 2));
+    let endPage = startPage + WINDOW - 1;
+    if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - WINDOW + 1);
+    }
+
+
     return (<div>
             <header className="header">
                 <strong className="logo">THE ONLINE STORE</strong> 
@@ -67,15 +103,12 @@ export default function Index() {
                     <div className="filters">
                         <div className="filterCategories">
                             <Form method="get" className="sortForm" onChange={(e) => submit(e.currentTarget, { replace: true })}>
-                                <label htmlFor="sortBy" className="visually-hidden">Sort by</label>
-                                <select id="sortBy" name="sortBy" defaultValue={sortBy}>
-                                    <option value="title">Title</option>
-                                    <option value="price">Price</option>
-                                </select>
-
-                                <select name="order" defaultValue={order}>
-                                    <option value="asc">Asc</option>
-                                    <option value="desc">Desc</option>
+                                <select id="sort" name="sort" defaultValue={sort || ""}>
+                                    <option value="">Sort by </option>  
+                                    <option value="title-asc">Title (A–Z)</option>
+                                    <option value="title-desc">Title (Z–A)</option>
+                                    <option value="price-asc">Price (Low → High)</option>
+                                    <option value="price-desc">Price (High → Low)</option>
                                 </select>
 
                                 <input type="hidden" name="page" value="1" />
@@ -83,7 +116,7 @@ export default function Index() {
                             </Form>
                         </div>
                         <div className="showing">
-                            <small>Showing {products.length} of {total}</small>
+                            <small>Showing {start}-{end} of {total}</small>
                         </div>
                     </div>
                     <div className="productGrid">
@@ -107,44 +140,46 @@ export default function Index() {
                     ))}
                     </div>
                     <div className="pagination">
-                        {/* Prev */}
-                        {page > 1 && (() => {
-                            const prev = new URLSearchParams(searchParams);
-                            prev.set("page", String(page - 1));
-                            return (
-                            <Link to={`/?${prev.toString()}`} className="page nav" aria-label="Previous page">
-                                &lsaquo;
-                            </Link>
-                            );
-                        })()}
 
-                        {/* 1..5 */}
-                        {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                            const n = i + 1;
-                            const sp = new URLSearchParams(searchParams);
-                            sp.set("page", String(n));
-                            return (
-                            <Link
-                                key={n}
-                                to={`/?${sp.toString()}`}
-                                className={n === page ? "page active" : "page"}
-                                aria-current={n === page ? "page" : undefined}
-                            >
-                                {n}
-                            </Link>
-                            );
-                        })}
+                  
+                    {page > 1 && (
+                    <Link
+                        to={`/?page=${page - 1}${sortQS}`}
+                        className="page nav"
+                        aria-label="Previous page"
+                    >
+                        &lsaquo;
+                    </Link>
+                    )}
 
-                        {/* Next */}
-                        {page < totalPages && (() => {
-                            const next = new URLSearchParams(searchParams);
-                            next.set("page", String(page + 1));
-                            return (
-                            <Link to={`/?${next.toString()}`} className="page nav" aria-label="Next page">
-                                &rsaquo;
-                            </Link>
-                            );
-                        })()}
+                    
+                    
+                    {Array.from({ length: endPage - startPage + 1 }, (_, i) => {
+                    const n = startPage + i;
+                    return (
+                        <Link
+                        key={n}
+                        to={`/?page=${n}${sortQS}`}
+                        className={n === page ? "page active" : "page"}
+                        aria-current={n === page ? "page" : undefined}
+                        >
+                        {n}
+                        </Link>
+                    );
+                    })}
+
+
+                   
+                    {page < totalPages && (
+                    <Link
+                        to={`/?page=${page + 1}${sortQS}`}
+                        className="page nav"
+                        aria-label="Next page"
+                    >
+                        &rsaquo;
+                    </Link>
+                    )}
+
                         </div>
                 </div>
                 <div className="Sidebar">
