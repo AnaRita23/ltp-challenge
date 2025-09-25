@@ -1,4 +1,4 @@
-import { Link, useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData, useSearchParams, Form, useSubmit } from "@remix-run/react";
 import { json } from "@remix-run/node";
 
 const PAGE_SIZE = 9;
@@ -8,9 +8,16 @@ export async function loader({ request }) {
     const page = Number(url.searchParams.get("page") || 1);
     const skip = (page - 1) * PAGE_SIZE;
 
-    const res = await fetch(
-        `https://dummyjson.com/products?limit=${PAGE_SIZE}&skip=${skip}`
-    );
+    const sortBy = url.searchParams.get("sortBy") || "title"; 
+    const order  = url.searchParams.get("order")  || "asc";
+
+    const apiUrl = new URL("https://dummyjson.com/products");
+    apiUrl.searchParams.set("limit", String(PAGE_SIZE));
+    apiUrl.searchParams.set("skip", String(skip));
+    apiUrl.searchParams.set("sortBy", sortBy);
+    apiUrl.searchParams.set("order", order);
+
+    const res = await fetch(apiUrl.href);
     if (!res.ok) throw new Response("Erro ao carregar produtos", { status: 500 });
 
     const data = await res.json();
@@ -18,12 +25,14 @@ export async function loader({ request }) {
     const total = data.total ?? products.length;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-    return json({ products, total, page, totalPages });
+    return json({ products, total, page, totalPages, sortBy, order });
 }
 
 
 export default function Index() {
-    const { products, total, page, totalPages } = useLoaderData();
+    const { products, total, page, totalPages, sortBy, order } = useLoaderData();
+    const [searchParams] = useSearchParams();
+    const submit = useSubmit();
     return (<div>
             <header className="header">
                 <strong className="logo">THE ONLINE STORE</strong> 
@@ -57,7 +66,21 @@ export default function Index() {
                 <div className="mainContent">
                     <div className="filters">
                         <div className="filterCategories">
+                            <Form method="get" className="sortForm" onChange={(e) => submit(e.currentTarget, { replace: true })}>
+                                <label htmlFor="sortBy" className="visually-hidden">Sort by</label>
+                                <select id="sortBy" name="sortBy" defaultValue={sortBy}>
+                                    <option value="title">Title</option>
+                                    <option value="price">Price</option>
+                                </select>
 
+                                <select name="order" defaultValue={order}>
+                                    <option value="asc">Asc</option>
+                                    <option value="desc">Desc</option>
+                                </select>
+
+                                <input type="hidden" name="page" value="1" />
+                                
+                            </Form>
                         </div>
                         <div className="showing">
                             <small>Showing {products.length} of {total}</small>
@@ -84,8 +107,45 @@ export default function Index() {
                     ))}
                     </div>
                     <div className="pagination">
-                        
-                    </div>
+                        {/* Prev */}
+                        {page > 1 && (() => {
+                            const prev = new URLSearchParams(searchParams);
+                            prev.set("page", String(page - 1));
+                            return (
+                            <Link to={`/?${prev.toString()}`} className="page nav" aria-label="Previous page">
+                                &lsaquo;
+                            </Link>
+                            );
+                        })()}
+
+                        {/* 1..5 */}
+                        {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                            const n = i + 1;
+                            const sp = new URLSearchParams(searchParams);
+                            sp.set("page", String(n));
+                            return (
+                            <Link
+                                key={n}
+                                to={`/?${sp.toString()}`}
+                                className={n === page ? "page active" : "page"}
+                                aria-current={n === page ? "page" : undefined}
+                            >
+                                {n}
+                            </Link>
+                            );
+                        })}
+
+                        {/* Next */}
+                        {page < totalPages && (() => {
+                            const next = new URLSearchParams(searchParams);
+                            next.set("page", String(page + 1));
+                            return (
+                            <Link to={`/?${next.toString()}`} className="page nav" aria-label="Next page">
+                                &rsaquo;
+                            </Link>
+                            );
+                        })()}
+                        </div>
                 </div>
                 <div className="Sidebar">
                     
