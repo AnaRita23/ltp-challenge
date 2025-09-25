@@ -9,17 +9,17 @@
 
 ### Application Structure
 - [ ] Create a Remix application with the following pages:
-  - [ ] Homepage
+  - [x] Homepage
   - [ ] Product detail
   - [ ] (Optional) Shopping Cart
-- [ ] Use the provided **Figma** file as the foundation and reproduce it as faithfully as possible.
+- [x] Use the provided **Figma** file as the foundation and reproduce it as faithfully as possible.
 
 ### Homepage
 - [x] Display a list of products
 - [x] Fetch products (you may use the **Dummy JSON API** provided)
 - [x] Each product links to its detail page
 - [x] Allow sorting (e.g., title/price, asc/desc)
-- [ ] Allow filtering by category
+- [x] Allow filtering by category
 - [x] Include pagination
 
 ### Product Detail Page
