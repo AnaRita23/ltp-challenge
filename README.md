@@ -4,6 +4,14 @@
 > The app should be responsive and follow frontend best practices for code quality and usability.
 
 ---
+## Building and Running
+
+### 1) Build
+npm run build
+
+### 2) Start production server
+npm start
+#### App at http://localhost:3000
 
 ## Scope & Checklist
 
