@@ -1,7 +1,7 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
-import { createReadableStreamFromReadable, json } from "@remix-run/node";
-import { RemixServer, Meta, Links, Outlet, Scripts, Link, useLoaderData, useSearchParams, useSubmit, useLocation, Form } from "@remix-run/react";
+import { createReadableStreamFromReadable, json, redirect } from "@remix-run/node";
+import { RemixServer, Meta, Links, Outlet, Scripts, useLoaderData, useSearchParams, Link, Form, useSubmit, useLocation } from "@remix-run/react";
 import * as isbotModule from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 const ABORT_DELAY = 5e3;
@@ -115,7 +115,7 @@ const entryServer = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineP
   __proto__: null,
   default: handleRequest
 }, Symbol.toStringTag, { value: "Module" }));
-const stylesHref = "/assets/styles-3EKpcTls.css";
+const stylesHref = "/assets/styles-CFuQZMG0.css";
 const links = () => [
   { rel: "stylesheet", href: stylesHref }
 ];
@@ -148,7 +148,27 @@ function App() {
         }
       ),
       /* @__PURE__ */ jsx(Meta, {}),
-      /* @__PURE__ */ jsx(Links, {})
+      /* @__PURE__ */ jsx(Links, {}),
+      /* @__PURE__ */ jsx("link", { rel: "preconnect", href: "https://fonts.googleapis.com" }),
+      /* @__PURE__ */ jsx("link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" }),
+      /* @__PURE__ */ jsx(
+        "link",
+        {
+          href: "https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap",
+          rel: "stylesheet"
+        }
+      ),
+      /* @__PURE__ */ jsx(Meta, {}),
+      /* @__PURE__ */ jsx(Links, {}),
+      /* @__PURE__ */ jsx("link", { rel: "preconnect", href: "https://fonts.googleapis.com" }),
+      /* @__PURE__ */ jsx("link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" }),
+      /* @__PURE__ */ jsx(
+        "link",
+        {
+          href: "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap",
+          rel: "stylesheet"
+        }
+      )
     ] }),
     /* @__PURE__ */ jsxs("body", { children: [
       /* @__PURE__ */ jsx(Outlet, {}),
@@ -164,6 +184,127 @@ const route0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: App,
   links,
   meta
+}, Symbol.toStringTag, { value: "Module" }));
+async function loader$2({ params }) {
+  const { productId } = params;
+  if (!productId) throw new Response("Not Found", { status: 404 });
+  const res = await fetch(
+    `https://dummyjson.com/products/${encodeURIComponent(productId)}`
+  );
+  if (!res.ok) throw new Response("Product not found", { status: 404 });
+  const product = await res.json();
+  return json({ product });
+}
+async function action({ request, params }) {
+  const {
+    getCartSession,
+    getCart,
+    setCart,
+    commitSession
+  } = await import("./assets/cart.server-BuSzAT2t.js");
+  const form = await request.formData();
+  if (form.get("intent") !== "add") return redirect(`/products/${params.productId}`);
+  const qty = Math.max(1, Number(form.get("qty") || 1));
+  const id = Number(params.productId);
+  const session = await getCartSession(request);
+  const cart = await getCart(session);
+  const existing = cart.items.find((i) => i.id === id);
+  if (existing) existing.qty += qty;
+  else cart.items.push({ id, qty });
+  await setCart(session, cart);
+  return redirect(`/products/${id}?added=1`, {
+    headers: { "Set-Cookie": await commitSession(session) }
+  });
+}
+function ProductDetail() {
+  var _a;
+  const { product } = useLoaderData();
+  const [sp] = useSearchParams();
+  return /* @__PURE__ */ jsxs("div", { children: [
+    /* @__PURE__ */ jsxs("header", { className: "header", children: [
+      /* @__PURE__ */ jsx("strong", { className: "logo", children: "THE ONLINE STORE" }),
+      /* @__PURE__ */ jsxs("nav", { className: "pageLinks", children: [
+        /* @__PURE__ */ jsx(Link, { to: "/", children: "Home" }),
+        /* @__PURE__ */ jsx(Link, { to: "/shop", children: "Shop" }),
+        /* @__PURE__ */ jsx(Link, { to: "/about", children: "About" }),
+        /* @__PURE__ */ jsx(Link, { to: "/contact", children: "Contact" }),
+        /* @__PURE__ */ jsx(Link, { to: "/blog", children: "Blog" })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "icons", children: [
+        /* @__PURE__ */ jsx(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            fill: "none",
+            viewBox: "0 0 24 24",
+            strokeWidth: "1.5",
+            stroke: "currentColor",
+            className: "icon",
+            children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" })
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            fill: "none",
+            viewBox: "0 0 24 24",
+            strokeWidth: "1.5",
+            stroke: "currentColor",
+            className: "icon",
+            children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
+          }
+        ),
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            fill: "none",
+            viewBox: "0 0 24 24",
+            strokeWidth: "1.5",
+            stroke: "currentColor",
+            className: "icon",
+            children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
+          }
+        ) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "productDetail container", children: [
+      /* @__PURE__ */ jsx("div", { className: "mainContent", children: /* @__PURE__ */ jsx("div", { className: "gallery", children: /* @__PURE__ */ jsx(
+        "img",
+        {
+          src: product.thumbnail || ((_a = product.images) == null ? void 0 : _a[0]),
+          alt: product.title,
+          style: { maxWidth: "100%", borderRadius: 8 }
+        }
+      ) }) }),
+      /* @__PURE__ */ jsxs("div", { className: "sidebar", children: [
+        /* @__PURE__ */ jsxs("div", { className: "info", children: [
+          /* @__PURE__ */ jsx("h1", { style: { marginTop: 0 }, children: product.title }),
+          /* @__PURE__ */ jsxs("p", { className: "price", style: { fontWeight: 600 }, children: [
+            "$",
+            Number(product.price).toFixed(2)
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs(Form, { method: "post", replace: true, children: [
+          /* @__PURE__ */ jsx("input", { type: "hidden", name: "qty", value: "1" }),
+          /* @__PURE__ */ jsx("button", { className: "addToCart", type: "submit", name: "intent", value: "add", children: "Add to Cart" })
+        ] }),
+        sp.get("added") === "1" && /* @__PURE__ */ jsx("div", { className: "cartToast", children: "Added to cart" }),
+        /* @__PURE__ */ jsx("div", { className: "divider" }),
+        /* @__PURE__ */ jsxs("div", { className: "about", children: [
+          /* @__PURE__ */ jsx("h3", { children: "Product Details" }),
+          /* @__PURE__ */ jsx("p", { className: "desc", children: product.description })
+        ] })
+      ] })
+    ] })
+  ] });
+}
+const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  action,
+  default: ProductDetail,
+  loader: loader$2
 }, Symbol.toStringTag, { value: "Module" }));
 function Shop$3() {
   return /* @__PURE__ */ jsxs("div", { children: [
@@ -201,7 +342,7 @@ function Shop$3() {
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
           }
         ),
-        /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
           "svg",
           {
             xmlns: "http://www.w3.org/2000/svg",
@@ -212,13 +353,13 @@ function Shop$3() {
             className: "icon",
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
           }
-        )
+        ) })
       ] })
     ] }),
     /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", { children: "Contact Page" }) })
   ] });
 }
-const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Shop$3
 }, Symbol.toStringTag, { value: "Module" }));
@@ -236,7 +377,7 @@ async function fetchJSON(url, { timeoutMs = 15e3 } = {}) {
     clearTimeout(id);
   }
 }
-async function loader({ request }) {
+async function loader$1({ request }) {
   const url = new URL(request.url);
   const page = Number(url.searchParams.get("page") || 1);
   const skip = (page - 1) * PAGE_SIZE;
@@ -416,7 +557,7 @@ function Index() {
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
           }
         ),
-        /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
           "svg",
           {
             xmlns: "http://www.w3.org/2000/svg",
@@ -427,7 +568,7 @@ function Index() {
             className: "icon",
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
           }
-        )
+        ) })
       ] })
     ] }),
     /* @__PURE__ */ jsxs("div", { className: "container", children: [
@@ -543,10 +684,10 @@ function Index() {
     ] })
   ] });
 }
-const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Index,
-  loader
+  loader: loader$1
 }, Symbol.toStringTag, { value: "Module" }));
 function Shop$2() {
   return /* @__PURE__ */ jsxs("div", { children: [
@@ -584,7 +725,7 @@ function Shop$2() {
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
           }
         ),
-        /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
           "svg",
           {
             xmlns: "http://www.w3.org/2000/svg",
@@ -595,13 +736,13 @@ function Shop$2() {
             className: "icon",
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
           }
-        )
+        ) })
       ] })
     ] }),
     /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", { children: "About Page" }) })
   ] });
 }
-const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Shop$2
 }, Symbol.toStringTag, { value: "Module" }));
@@ -641,7 +782,7 @@ function Shop$1() {
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
           }
         ),
-        /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
           "svg",
           {
             xmlns: "http://www.w3.org/2000/svg",
@@ -652,15 +793,96 @@ function Shop$1() {
             className: "icon",
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
           }
-        )
+        ) })
       ] })
     ] }),
     /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", { children: "Blog Page" }) })
   ] });
 }
-const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Shop$1
+}, Symbol.toStringTag, { value: "Module" }));
+async function loader({ request }) {
+  const { getCartSession, getCart, cartCount } = await import("./assets/cart.server-BuSzAT2t.js");
+  const session = await getCartSession(request);
+  const cart = await getCart(session);
+  return json({ cart, count: cartCount(cart) });
+}
+function CartPage() {
+  const { cart, count } = useLoaderData();
+  const items = cart.items ?? [];
+  return /* @__PURE__ */ jsxs("div", { children: [
+    /* @__PURE__ */ jsxs("header", { className: "header", children: [
+      /* @__PURE__ */ jsx("strong", { className: "logo", children: "THE ONLINE STORE" }),
+      /* @__PURE__ */ jsxs("nav", { className: "pageLinks", children: [
+        /* @__PURE__ */ jsx(Link, { to: "/", children: "Home" }),
+        /* @__PURE__ */ jsx(Link, { to: "/shop", children: "Shop" }),
+        /* @__PURE__ */ jsx(Link, { to: "/about", children: "About" }),
+        /* @__PURE__ */ jsx(Link, { to: "/contact", children: "Contact" }),
+        /* @__PURE__ */ jsx(Link, { to: "/blog", children: "Blog" })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "icons", children: [
+        /* @__PURE__ */ jsx(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            fill: "none",
+            viewBox: "0 0 24 24",
+            strokeWidth: "1.5",
+            stroke: "currentColor",
+            className: "icon",
+            children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" })
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            fill: "none",
+            viewBox: "0 0 24 24",
+            strokeWidth: "1.5",
+            stroke: "currentColor",
+            className: "icon",
+            children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
+          }
+        ),
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
+          "svg",
+          {
+            xmlns: "http://www.w3.org/2000/svg",
+            fill: "none",
+            viewBox: "0 0 24 24",
+            strokeWidth: "1.5",
+            stroke: "currentColor",
+            className: "icon",
+            children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
+          }
+        ) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxs("main", { className: "container", style: { padding: 24 }, children: [
+      /* @__PURE__ */ jsxs("h1", { children: [
+        "Cart (",
+        count,
+        ")"
+      ] }),
+      !items.length ? /* @__PURE__ */ jsxs("p", { children: [
+        "Your cart is empty. ",
+        /* @__PURE__ */ jsx(Link, { to: "/", children: "Go shopping" })
+      ] }) : /* @__PURE__ */ jsx("ul", { children: items.map((i) => /* @__PURE__ */ jsxs("li", { children: [
+        "Product #",
+        i.id,
+        " — qty ",
+        i.qty
+      ] }, i.id)) })
+    ] })
+  ] });
+}
+const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: CartPage,
+  loader
 }, Symbol.toStringTag, { value: "Module" }));
 function Shop() {
   return /* @__PURE__ */ jsxs("div", { children: [
@@ -698,7 +920,7 @@ function Shop() {
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" })
           }
         ),
-        /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx(Link, { to: "/cart", "aria-label": "Open cart", className: "icon", children: /* @__PURE__ */ jsx(
           "svg",
           {
             xmlns: "http://www.w3.org/2000/svg",
@@ -709,17 +931,17 @@ function Shop() {
             className: "icon",
             children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
           }
-        )
+        ) })
       ] })
     ] }),
     /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", { children: "Shop Page" }) })
   ] });
 }
-const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Shop
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-BnDlbNUM.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-5AOT9awx.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/contact": { "id": "routes/contact", "parentId": "root", "path": "contact", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/contact-l9_5Xgiv.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-x8tNpAGi.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/about": { "id": "routes/about", "parentId": "root", "path": "about", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/about-Bt8JlAWu.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/blog": { "id": "routes/blog", "parentId": "root", "path": "blog", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/blog-D13of1q0.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] }, "routes/shop": { "id": "routes/shop", "parentId": "root", "path": "shop", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/shop-Dpqkq6cH.js", "imports": ["/assets/components-6hZqzzL_.js"], "css": [] } }, "url": "/assets/manifest-d08150f2.js", "version": "d08150f2" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-BFe-IAmb.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DZIb0-m7.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/products.$productId": { "id": "routes/products.$productId", "parentId": "root", "path": "products/:productId", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/products._productId-BOhGBK5b.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/contact": { "id": "routes/contact", "parentId": "root", "path": "contact", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/contact-DjAGzEqe.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-B7T0VavK.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/about": { "id": "routes/about", "parentId": "root", "path": "about", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/about-D1x7jnkj.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/blog": { "id": "routes/blog", "parentId": "root", "path": "blog", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/blog-Bz1FTDof.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/cart": { "id": "routes/cart", "parentId": "root", "path": "cart", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/cart-DVNHAbZg.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] }, "routes/shop": { "id": "routes/shop", "parentId": "root", "path": "shop", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/shop-DiMV7MCh.js", "imports": ["/assets/components-CtgBr_vo.js"], "css": [] } }, "url": "/assets/manifest-491c5f09.js", "version": "491c5f09" };
 const mode = "production";
 const assetsBuildDirectory = "build\\client";
 const basename = "/";
@@ -736,13 +958,21 @@ const routes = {
     caseSensitive: void 0,
     module: route0
   },
+  "routes/products.$productId": {
+    id: "routes/products.$productId",
+    parentId: "root",
+    path: "products/:productId",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route1
+  },
   "routes/contact": {
     id: "routes/contact",
     parentId: "root",
     path: "contact",
     index: void 0,
     caseSensitive: void 0,
-    module: route1
+    module: route2
   },
   "routes/_index": {
     id: "routes/_index",
@@ -750,7 +980,7 @@ const routes = {
     path: void 0,
     index: true,
     caseSensitive: void 0,
-    module: route2
+    module: route3
   },
   "routes/about": {
     id: "routes/about",
@@ -758,7 +988,7 @@ const routes = {
     path: "about",
     index: void 0,
     caseSensitive: void 0,
-    module: route3
+    module: route4
   },
   "routes/blog": {
     id: "routes/blog",
@@ -766,7 +996,15 @@ const routes = {
     path: "blog",
     index: void 0,
     caseSensitive: void 0,
-    module: route4
+    module: route5
+  },
+  "routes/cart": {
+    id: "routes/cart",
+    parentId: "root",
+    path: "cart",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route6
   },
   "routes/shop": {
     id: "routes/shop",
@@ -774,7 +1012,7 @@ const routes = {
     path: "shop",
     index: void 0,
     caseSensitive: void 0,
-    module: route5
+    module: route7
   }
 };
 export {

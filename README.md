@@ -10,7 +10,7 @@
 ### Application Structure
 - [ ] Create a Remix application with the following pages:
   - [x] Homepage
-  - [ ] Product detail
+  - [x] Product detail
   - [ ] (Optional) Shopping Cart
 - [x] Use the provided **Figma** file as the foundation and reproduce it as faithfully as possible.
 
@@ -23,13 +23,13 @@
 - [x] Include pagination
 
 ### Product Detail Page
-- [ ] Fetch the selected product (Dummy JSON API allowed)
-- [ ] Implement all elements from the Figma design (extra elements are welcome)
-- [ ] “Add to cart” adds the product to the cart
+- [x] Fetch the selected product (Dummy JSON API allowed)
+- [x] Implement all elements from the Figma design (extra elements are welcome)
+- [x] “Add to cart” adds the product to the cart
 
 ### (Optional) Shopping Cart
 - [ ] Implement a cart page within the app layout
-- [ ] Provide access to the cart from an icon in the header
+- [x] Provide access to the cart from an icon in the header
 - [ ] Display added products, quantities, and total
 - [ ] Allow removing products from the cart
 
