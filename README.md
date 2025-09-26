@@ -8,10 +8,10 @@
 ## Scope & Checklist
 
 ### Application Structure
-- [ ] Create a Remix application with the following pages:
+- [x] Create a Remix application with the following pages:
   - [x] Homepage
   - [x] Product detail
-  - [ ] (Optional) Shopping Cart
+  - [x] (Optional) Shopping Cart
 - [x] Use the provided **Figma** file as the foundation and reproduce it as faithfully as possible.
 
 ### Homepage
@@ -28,14 +28,14 @@
 - [x] “Add to cart” adds the product to the cart
 
 ### (Optional) Shopping Cart
-- [ ] Implement a cart page within the app layout
+- [x] Implement a cart page within the app layout
 - [x] Provide access to the cart from an icon in the header
-- [ ] Display added products, quantities, and total
-- [ ] Allow removing products from the cart
+- [x] Display added products, quantities, and total
+- [x] Allow removing products from the cart
 
 ### Design
 - [ ] (Optional) Use **Tailwind CSS** for styling
-- [ ] Ensure the app works well on **mobile and desktop**
+- [x] Ensure the app works well on **mobile and desktop**
 
 ### Development Resources
 - [x] Figma

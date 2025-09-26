@@ -3,9 +3,19 @@ import {
     Meta,
     Outlet,
     Scripts,
+    ScrollRestoration,
+    useLoaderData
   } from "@remix-run/react";
+import { json } from "@remix-run/node";
   
 import stylesHref from "./styles.css?url";
+
+export async function loader({ request }) {
+  const { getCartSession, getCart, cartCount } = await import("./utils/cart.server");
+  const session = await getCartSession(request);
+  const cart = await getCart(session);
+  return json({ cartCount: cartCount(cart) });
+}
 
 export const links = () => [
 { rel: "stylesheet", href: stylesHref },
